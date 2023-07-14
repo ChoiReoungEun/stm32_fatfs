@@ -57,7 +57,17 @@ static void MX_SPI1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+typedef struct{
+	uint8_t bmpType[2];
+	uint8_t bmpSize[4];
+	uint8_t bmpReserved[4];
+	uint8_t bmpOffset[4];
+	uint8_t bidSize[4];
+	uint8_t bidWidth[4];
+	uint8_t bidHeight[4];
+	uint8_t bidColorPlane[2];
+	uint8_t bidBitPerPixel[2];
+}bmp_t;
 /* USER CODE END 0 */
 
 /**
@@ -91,13 +101,52 @@ int main(void)
   MX_SPI1_Init();
   MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
+  FATFS *fatfs;
+  FIL *file;
+  FRESULT status;
 
+  uint8_t *image;
+  bmp_t propertiesBmp;
+
+  fatfs = malloc(sizeof(FATFS));
+  file = malloc(sizeof(FIL));
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+  	// 디스크 적재
+  	status = f_mount(fatfs, "", 0);
+  	if(status != FR_OK) printf("disk is not ready\n");
+  	// 파일 읽기
+  	status = f_open(file, "test.bmp", FA_READ);
+  	if(status != FR_OK) printf("file not found!\n");
+  	// 헤더 읽기
+  	f_read(file, propertiesBmp.bmpType, 2, NULL);
+  	f_read(file, propertiesBmp.bmpSize, 4, NULL);
+  	f_read(file, propertiesBmp.bmpReserved, 4, NULL);
+  	f_read(file, propertiesBmp.bmpOffset, 4, NULL);
+  	f_read(file, propertiesBmp.bidSize, 4, NULL);
+  	f_read(file, propertiesBmp.bidWidth, 4, NULL);
+  	f_read(file, propertiesBmp.bidHeight, 4, NULL);
+  	f_read(file, propertiesBmp.bidColorPlane, 2, NULL);
+  	f_read(file, propertiesBmp.bidBitPerPixel, 2, NULL);
+  	uint32_t offset;
+  	uint32_t width;
+  	uint32_t height;
+  	memcpy(&offset, propertiesBmp.bmpSize, 4);
+  	memcpy(&offset, propertiesBmp.bidWidth, 4);
+  	memcpy(&offset, propertiesBmp.bidHeight, 4);
+  	// 이미지 시작위치 점프
+  	f_lseek(file, offset);
+  	// 이미지 읽기
+  	image = malloc(width * height * 3);
+  	for(int y = 0; y < height; y++){
+  		for(int x = 0; x < width; x++){
+  			f_read(file, &image[(x*3) + (y*width*3)], 3, NULL);
+  		}
+  	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
